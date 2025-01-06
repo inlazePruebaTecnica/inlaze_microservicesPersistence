@@ -1,0 +1,79 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  username      String         @unique
+  available     Boolean        @default(true)
+  password      String
+  assignedTasks AssignedTask[]
+  Task          Task[]
+  Comment       Comment[]
+
+  @@index([available])
+}
+
+model Proyect {
+  id           Int      @id @default(autoincrement())
+  title        String
+  description  String
+  creationDate DateTime @default(now())
+  tasks        Task[]
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Task {
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  dateLimit   DateTime
+  state       String   @default("TODO")
+  user_id     Int? // Relación opcional con User
+  proyectId   Int
+
+  user          User?          @relation(fields: [user_id], references: [id]) // Relación con User
+  proyect       Proyect        @relation(fields: [proyectId], references: [id]) // Relación con Proyect
+  comments      Comment[]
+  assignedUsers AssignedTask[] // Relación con la tabla intermedia
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id      Int      @id @default(autoincrement())
+  user_id Int
+  task_id Int
+  comment String
+  date    DateTime @default(now())
+
+  task Task @relation(fields: [task_id], references: [id])
+  user User @relation(fields: [user_id], references: [id])
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AssignedTask {
+  id     Int @id @default(autoincrement())
+  userId Int
+  taskId Int
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, taskId]) // Evitar duplicados
+  @@index([taskId])
+}
